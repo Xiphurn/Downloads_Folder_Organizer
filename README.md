@@ -1,4 +1,4 @@
-# File Organizer Script Documentation
+# Folder Organizer Script Documentation
 
 This script is designed to automate the organization of files within a specified downloads directory on your computer. It sorts files into predefined folders based on their extensions, renames files to avoid naming conflicts, removes duplicate files, and reorganizes folders to maintain a clean directory structure.
 
@@ -20,15 +20,52 @@ extension_folders = {
 }
 ```
 
+- **Customization Options**:
+  - It is possible to skip the duplicate removal step entirely by setting the `want_to_remove_duplicates` variable to `False` in the `main()` function, which can be useful to save execution time.
+
+  - You can also specify the folders for which you don't want to remove duplicates by adding their names to the `not_allowed_folders` list in the `remove_duplicates()` function.
+
 ### Functions
 
-1. **`file_hash(filepath)`**: Calculates the MD5 hash of a file for identifying duplicates. It processes files in chunks, making it efficient for handling large files. This function reads the file in segments, ensuring that it can compute the hash for large files without consuming excessive memory. Note that this step can be time-consuming depending on the number and size of files to be processed.
+1. **`file_hash(filepath)`**: 
+    - This function calculates the MD5 hash of a file specified by the `filepath` parameter.
+    - It opens the file in binary mode, reads it in chunks of 4096 bytes, and updates the MD5 hash object with each chunk.
+    - Finally, it returns the hexadecimal representation of the calculated hash.
 
-2. **`remove_duplicates(folder_path)`**: Iterates over files in a specified folder, computes their MD5 hashes, and removes any duplicate files.
 
-3. **`find_new_file_name(base_path, original_stem, suffix, start=1)`**: Generates a unique filename by appending a number to the original name if a file with the same name exists.
+2. **`remove_duplicates(folder_path)`**: 
+    - This function removes duplicate files within the specified `folder_path`.
+    - It first checks if the folder name is not in the list of folders where duplicate removal is not allowed (specified by `not_allowed_folders`).
+    - If duplicate removal is allowed for the folder, it iterates over each file in the folder, calculates its hash using the `file_hash()` function, and compares it with previously seen hashes.
+    - If a duplicate file is found (i.e., a file with the same hash already exists), it removes the duplicate file using the `unlink()` method.
+    - If the folder is in the `not_allowed_folders` list, it skips duplicate removal for that folder.
 
-4. **`clean_and_rename_file(file_path)`**: This function streamlines file names within a directory by removing unordered indices and reassigning them in a sequential order. This is particularly useful after duplicate files have been removed and only non-identical files with matching base names remain, potentially leaving gaps in the numbering sequence. The function ensures that all files with the same base name are numbered sequentially without gaps.
+
+    Note that this step can be time-consuming depending on the number and size of files to be processed.
+
+3. **`rename_files(folder_path: Path)`**: 
+    - This function renames files within the specified `folder_path` to avoid name conflicts.
+    - It creates a temporary subfolder called 'temp' within the specified folder.
+    - It uses a regular expression pattern to match files with a numeric index before the extension (e.g., "file (1).txt").
+    - It moves files matching the pattern to the temporary folder.
+    - For each file in the temporary folder, it generates a new name by removing the index or incrementing it if necessary to avoid name conflicts.
+    - It moves the file to the original folder with the new name and prints a message if the name was changed.
+    - Finally, it deletes the temporary folder if it's empty.
+
+4. **`organize_files()`**: 
+    - This function organizes files in the downloads directory into categorized folders based on their file extensions.
+    - It iterates over each file in the downloads directory (specified by `downloads_path`).
+    - For each file, it determines the folder name based on the file extension using the `extension_folders` dictionary. If the extension is not found in the dictionary, it assigns the file to the 'Others' folder.
+    - It creates the corresponding folder if it doesn't exist and moves the file into that folder.
+    - It prints a message indicating the file movement.
+
+5. **`main()`**: 
+    - This is the main function that initiates the file organization and cleaning process.
+    - It calls the `organize_files()` function to organize files into categorized folders.
+    - It creates a "Folders" directory within the downloads directory and moves any existing folders (except the categorized folders and "Others") into the "Folders" directory.
+    - If `want_to_remove_duplicates` is set to `True`, it calls the `remove_duplicates()` function for each categorized folder (including "Others") to remove duplicate files.
+    - It calls the `rename_files()` function for each categorized folder (including "Others") to rename files and avoid name conflicts.
+    - Finally, it prints the execution time of the script.
 
 ### Organizing Files
 
@@ -39,6 +76,9 @@ extension_folders = {
 ### Removing Duplicates and Cleaning Names
 
 - **Remove Duplicate Files**: After sorting, the script removes duplicates within each folder using their MD5 hashes.
+  - You can choose whether you want to delete duplicates or not by changing the `want_to_remove_duplicates` variable to `True` or `False` in `main`. As       removing duplicates is the slowest part of the process, this saves time. 
+
+  - In the `remove_duplicates(folder_path)` function, you can also select the folders where you don't want duplicates to be removed. 
 
 - **Rename and Clean File Names**: Files are renamed to ensure uniqueness and to follow a standardized naming convention, eliminating numbers added for previous naming conflicts.
 
