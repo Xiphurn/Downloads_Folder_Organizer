@@ -1,8 +1,11 @@
 from pathlib import Path
 import hashlib
 import re
+import time
+import shutil
 
 # Define the path to the Downloads folder. Modify this path according to your operating system and user name.
+# Example: downloads_path = Path(r"C:\Users\YourUserName\Downloads")
 downloads_path = Path(r"Path to downloads folder ")
 
 # Create a dictionary to map file extensions to folder names
@@ -101,93 +104,120 @@ def file_hash(filepath):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
 
-# Remove duplicate files in a given folder
 def remove_duplicates(folder_path):
-    """Remove duplicate files in the given folder by comparing their hash. Rename remaining files to remove unnecessary indices."""
-    print(f"Removing duplicates in {folder_path}, this may take a while...")
-    hashes = {}
-    for file in folder_path.iterdir():
-        if file.is_file():
-            file_hash_value = file_hash(file)
-            if file_hash_value in hashes:
-                print(f"Removing duplicate file: {file}")
-                file.unlink()  # Remove the file
-                # Check if the remaining file has an index in its name and rename it if necessary
-                original_file = hashes[file_hash_value]
-                match = re.match(r"(.*) \(\d+\)(\.[^.]+)$", original_file.name)
-                if match:
-                    new_name = f"{match.group(1)}{match.group(2)}"
-                    new_file_path = original_file.parent / new_name
-                    if not new_file_path.exists():
-                        original_file.rename(new_file_path)
-                        print(f"Renamed {original_file} to {new_name}")
-            else:
-                hashes[file_hash_value] = file
+    """Remove duplicate files in the given folder by comparing their hash."""
 
-# Find a new, unique file name if the target name already exists
-def find_new_file_name(base_path, original_stem, suffix, start=1):
-    """Find a new file name by appending '(n)' until an unused name is found."""
-    for i in range(start, 10000):  # Limit attempts to avoid infinite loop
-        new_stem = f"{original_stem} ({i})"
-        new_file_path = base_path / f"{new_stem}{suffix}"
-        if not new_file_path.exists():
-            return new_file_path
-    raise Exception("Could not find a new file name.")
+    # List of folder names where duplicate removal is not allowed
+    # not_allowed_folders = ["Android Apps", "Compressed Files", "Programs", "Others", "Disk Images"]
+    # Fullfil the list with the folder names where you don't want to remove duplicates as above
+    not_allowed_folders = []
 
-# Rename and organize files into folders based on their extension
+    # Convert folder_path to a Path object if it's not already one
+    folder_path = Path(folder_path)
+
+    # Get the name of the last component of the folder_path
+    folder_name = folder_path.name
+
+    # Check if folder_name is NOT in the list of not allowed folders
+    if folder_name not in not_allowed_folders:
+        print(f"Removing duplicates in {folder_path}, this may take a while...")
+        hashes = {}
+        for file in folder_path.iterdir():
+            if file.is_file():
+                file_hash_value = file_hash(file)
+                if file_hash_value in hashes:
+                    print(f"Removing duplicate file: {file}")
+                    file.unlink()  # Remove the file
+                else:
+                    hashes[file_hash_value] = file
+    else:
+        print(f"Skipping {folder_path} folder.")
+
+def rename_files(folder_path: Path):
+    # Create a temporary subfolder called 'temp' in the specified folder
+    temp_folder = folder_path / 'temp'
+    temp_folder.mkdir(exist_ok=True)
+
+    # Regular expression pattern to match files with a numeric index before the extension
+    pattern = re.compile(r'(.+) \((\d+)\)(\.[^.]+)$')
+
+    # Move files with an index to the temporary folder
+    for file in folder_path.glob('*'):
+        if pattern.match(file.name):
+            shutil.move(str(file), str(temp_folder))
+
+    # Process files in the temporary folder
+    for file in temp_folder.glob('*'):
+        match = pattern.match(file.name)
+        if match:
+            base_name, _, extension = match.groups()
+            new_index = 0
+            while True:
+                new_name = f'{base_name}{extension}' if new_index == 0 else f'{base_name} ({new_index}){extension}'
+                new_path = folder_path / new_name
+                if not new_path.exists():
+                    break
+                new_index += 1
+            
+            # Move the file to the original folder with the new name
+            shutil.move(str(file), str(new_path))
+            # Print only if the new name is different from the old name
+            if new_path.name != file.name:
+                print(f"Renamed '{file.name}' to '{new_path.name}'")
+
+    # Delete the temporary folder if it's empty
+    if not any(temp_folder.iterdir()):
+        temp_folder.rmdir()
+
+
+# Organize files into folders based on their extension
 def organize_files():
-    """Organize files in the downloads directory into categorized folders, ensuring names are kept as simple as possible."""
+    """Organize files in the downloads directory into categorized folders."""
     for file in downloads_path.iterdir():
         if file.is_file():
             file_extension = file.suffix.lower()
             folder_name = extension_folders.get(file_extension, 'Others')
             folder_path = downloads_path / folder_name
             folder_path.mkdir(exist_ok=True)
-
-            target_file_path = folder_path / file.name
-            if target_file_path.exists():
-                # Extract the stem (file name without extension) and check if it ends with an index pattern
-                original_stem = file.stem
-                match = re.match(r"(.*) \(\d+\)$", original_stem)
-                if match:
-                    # Try to find a new name without unnecessary indices
-                    base_stem = match.group(1)
-                    new_file_path = find_new_file_name(folder_path, base_stem, file.suffix)
-                else:
-                    # If no index pattern, just find a new name normally
-                    new_file_path = find_new_file_name(folder_path, original_stem, file.suffix)
-            else:
-                new_file_path = target_file_path
-
-            file.rename(new_file_path)
-            print(f'Moved {file.name} to {new_file_path}')
+            file.rename(folder_path / file.name)
+            print(f'Moved {file.name} to {folder_path}')
 
 # Main function to initiate file organization and cleaning
 def main():
+    # Set this to True if you want to remove duplicate files and False otherwise
+    # removing duplicates can be time consuming !!!
+    want_to_remove_duplicates = True
+
     organize_files()
     print('Files have been organized.\n')
 
-    # Creating and moving directories into a "Folders" directory
     folders_path = downloads_path / "Folders"
     folders_path.mkdir(exist_ok=True)
     for item in downloads_path.iterdir():
         if item.is_dir() and item.name not in extension_folders.values() and item.name != "Others" and item.name != "Folders":
-            target_folder_path = folders_path / item.name
-            if not target_folder_path.exists():
-                item.rename(target_folder_path)
-                print(f'Moved folder {item.name} to {folders_path}')
-            else:
-                print(f"Folder {item.name} already exists in {folders_path}, skipping...")
+            item.rename(folders_path / item.name)
+            print(f'Moved folder {item.name} to {folders_path}')
 
     print('Folders have been organized. \n')
 
-    # Removing duplicate files in organized folders
+    if want_to_remove_duplicates:
+        for folder in set(extension_folders.values()).union({'Others'}):
+            folder_path = downloads_path / folder
+            if folder_path.exists() and folder_path.is_dir():
+                remove_duplicates(folder_path)
+        
+        print('Duplicate files have been removed. \n')
+
     for folder in set(extension_folders.values()).union({'Others'}):
         folder_path = downloads_path / folder
         if folder_path.exists() and folder_path.is_dir():
-            remove_duplicates(folder_path)
+            rename_files(folder_path)
     
-    print('Duplicate files have been removed. \n')
+    print('Files have been renamed. \n')
 
 if __name__ == "__main__":
+    start_time = time.time()
     main()
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print(f"The script took {execution_time:.2f} seconds to run.")
