@@ -3,6 +3,8 @@ import hashlib
 import re
 import time
 import shutil
+import os
+import json
 
 # Define the path to the Downloads folder. Modify this path according to your operating system and user name.
 # Example: downloads_path = Path(r"C:\Users\YourUserName\Downloads")
@@ -95,41 +97,67 @@ extension_folders = {
 }
 
 
-# Calculate the MD5 hash of a file for duplicate checking
-def file_hash(filepath):
-    """Calculate MD5 hash of a file."""
-    hash_md5 = hashlib.md5()
-    with open(filepath, "rb") as f:
-        for chunk in iter(lambda: f.read(4096), b""):
-            hash_md5.update(chunk)
-    return hash_md5.hexdigest()
+def load_hash_cache(cache_file):
+    if cache_file.exists():
+        try:
+            with open(cache_file, 'r') as f:
+                return json.load(f)
+        except json.JSONDecodeError:
+            print(f"Error: Invalid JSON data in {cache_file}. Starting with an empty cache.")
+            return {}
+    else:
+        return {}
+
+def save_hash_cache(cache_file, hash_cache):
+    with open(cache_file, 'w') as f:
+        json.dump(hash_cache, f)
+
+def file_hash(file_path, hash_cache):
+    mtime = os.path.getmtime(file_path)
+    cache_key = f"{file_path}|{mtime}"  # Convert tuple to string
+    
+    if cache_key in hash_cache:
+        return hash_cache[cache_key]
+    else:
+        with open(file_path, "rb") as f:
+            md5_hash = hashlib.md5()
+            for chunk in iter(lambda: f.read(4096), b""):
+                md5_hash.update(chunk)
+        file_hash = md5_hash.hexdigest()
+        hash_cache[cache_key] = file_hash
+        return file_hash
 
 def remove_duplicates(folder_path):
     """Remove duplicate files in the given folder by comparing their hash."""
-
-    # List of folder names where duplicate removal is not allowed
-    # not_allowed_folders = ["Android Apps", "Compressed Files", "Programs", "Others", "Disk Images"]
-    # Fullfil the list with the folder names where you don't want to remove duplicates as above
+    
     not_allowed_folders = []
-
-    # Convert folder_path to a Path object if it's not already one
+    
     folder_path = Path(folder_path)
-
-    # Get the name of the last component of the folder_path
     folder_name = folder_path.name
-
-    # Check if folder_name is NOT in the list of not allowed folders
+    
     if folder_name not in not_allowed_folders:
         print(f"Removing duplicates in {folder_path}, this may take a while...")
+        
+        # Get the directory of the current script
+        script_dir = Path(__file__).parent
+        
+        # Create the cache file path in the same directory as the script
+        cache_file = script_dir / 'hash_cache.json'
+        
+        # Create the cache file if it doesn't exist
+        cache_file.touch(exist_ok=True)
+        
+        hash_cache = load_hash_cache(cache_file)
         hashes = {}
         for file in folder_path.iterdir():
             if file.is_file():
-                file_hash_value = file_hash(file)
+                file_hash_value = file_hash(str(file), hash_cache)
                 if file_hash_value in hashes:
                     print(f"Removing duplicate file: {file}")
-                    file.unlink()  # Remove the file
+                    file.unlink()
                 else:
                     hashes[file_hash_value] = file
+        save_hash_cache(cache_file, hash_cache)
     else:
         print(f"Skipping {folder_path} folder.")
 
@@ -171,7 +199,7 @@ def rename_files(folder_path: Path):
 
 
 # Organize files into folders based on their extension
-def organize_files():
+def organize_files(downloads_path=downloads_path):
     """Organize files in the downloads directory into categorized folders."""
     for file in downloads_path.iterdir():
         if file.is_file():
