@@ -84,7 +84,7 @@ extension_folders = {
 
     ***Example:***
     
-      Suppose we have a file named "document.pdf" in the downloads directory, and a file with the same name already exists in the destination folder "PDFs". The organize_files() function will:
+      Suppose we have a file named "document.pdf" in the downloads directory, and a file with the same name already exists in the destination folder "PDFs". The `organize_files()` function will:
 
       - Check if "document.pdf" already exists in the "PDFs" folder.
       - Since it exists, print a message: "File with name 'document.pdf' already exists in PDFs, trying a different name..."
@@ -97,7 +97,7 @@ extension_folders = {
       - Once a unique filename is found, rename the file to "document (1234).pdf" and move it to the "PDFs" folder.
       - Print a message: "Moved and renamed document.pdf to D:\Downloads\PDFs\document (1234).pdf".
       
-      Later, when the rename_files() function is called, it will process the files in the "PDFs" folder and rename "document (1234).pdf" to "document (1).pdf" (assuming "document.pdf" still exists in the folder). This ensures that the file has the proper index - instead of the temporary random number.
+      Later, when the `rename_files()` function is called, it will process the files in the "PDFs" folder and rename "document (1234).pdf" to "document (1).pdf" (assuming "document.pdf" still exists in the folder). This ensures that the file has the proper index - instead of the temporary random number.
 
 5. **`load_hash_cache(cache_file)`**: 
     - This function loads the hash cache from a JSON file specified by `cache_file`.
