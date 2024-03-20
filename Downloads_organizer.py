@@ -5,6 +5,7 @@ import time
 import shutil
 import os
 import json
+import random
 
 # Define the path to the Downloads folder. Modify this path according to your operating system and user name.
 # Example: downloads_path = Path(r"C:\Users\YourUserName\Downloads")
@@ -23,12 +24,19 @@ extension_folders = {
     '.png': 'Images',
     '.gif': 'Images',
     '.jpeg': 'Images',
+    '.heic': 'Images',
     '.txt': 'Text Files',
     '.zip': 'Compressed Files',
     '.exe': 'Programs',
     '.msi': 'Programs',
+    '.dmg': 'Disk Images',
+    '.app': 'Programs',
     '.iso': 'Disk Images',
     '.csv': 'CSV Files',
+    '.xls': 'Spreadsheets',
+    '.xltx': 'Spreadsheets',
+    '.ott': 'Documents',
+    '.dot': 'Documents',
     '.pptx': 'Presentations',
     '.ppt': 'Presentations',
     '.ics': 'Calendar Files',
@@ -207,8 +215,25 @@ def organize_files(downloads_path=downloads_path):
             folder_name = extension_folders.get(file_extension, 'Others')
             folder_path = downloads_path / folder_name
             folder_path.mkdir(exist_ok=True)
-            file.rename(folder_path / file.name)
-            print(f'Moved {file.name} to {folder_path}')
+            
+            # Check if a file with the same name already exists in the destination folder
+            new_file_path = folder_path / file.name
+            if new_file_path.exists():
+                # If a file with the same name exists, rename the file being moved
+                print(f"File with name '{file.name}' already exists in {folder_name}, trying a different name...")
+                while True:
+                    random_number = random.randint(1000, 9999)
+                    new_name = f"{file.stem} ({random_number}){file.suffix}"
+                    new_file_path = folder_path / new_name
+                    if not new_file_path.exists():
+                        break
+                    else:
+                        print(f"File with name '{new_name}' already exists. Trying a different name...")
+                file.rename(new_file_path)
+                print(f'Moved and renamed {file.name} to {new_file_path}')
+            else:
+                file.rename(new_file_path)
+                print(f'Moved {file.name} to {folder_path}')
 
 # Main function to initiate file organization and cleaning
 def main():
@@ -243,9 +268,9 @@ def main():
     
     print('Files have been renamed. \n')
 
-if __name__ == "__main__":
-    start_time = time.time()
-    main()
-    end_time = time.time()
-    execution_time = end_time - start_time
-    print(f"The script took {execution_time:.2f} seconds to run.")
+
+start_time = time.time()
+main()
+end_time = time.time()
+execution_time = end_time - start_time
+print(f"The script took {execution_time:.2f} seconds to run.")
