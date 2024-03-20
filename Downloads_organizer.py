@@ -111,7 +111,8 @@ def load_hash_cache(cache_file):
             with open(cache_file, 'r') as f:
                 return json.load(f)
         except json.JSONDecodeError:
-            print(f"Error: Invalid JSON data in {cache_file}. Starting with an empty cache.")
+            print(f"\nThe cache file '{cache_file}' is empty or does not exist.")
+            print("A new empty cache will be used instead...\n")
             return {}
     else:
         return {}
