@@ -226,6 +226,7 @@ def organize_files(downloads_path=downloads_path):
                     new_name = f"{file.stem} ({random_number}){file.suffix}"
                     new_file_path = folder_path / new_name
                     if not new_file_path.exists():
+                        print(f"Found a unique name: '{new_name}'")
                         break
                     else:
                         print(f"File with name '{new_name}' already exists. Trying a different name...")

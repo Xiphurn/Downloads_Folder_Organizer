@@ -69,8 +69,35 @@ extension_folders = {
     - This function organizes files in the downloads directory into categorized folders based on their file extensions.
     - It iterates over each file in the downloads directory (specified by `downloads_path`).
     - For each file, it determines the folder name based on the file extension using the `extension_folders` dictionary. If the extension is not found in the dictionary, it assigns the file to the 'Others' folder.
-    - It creates the corresponding folder if it doesn't exist and moves the file into that folder.
-    - It prints a message indicating the file movement.
+    - It creates the corresponding folder if it doesn't exist.
+    - Before moving the file, it checks if a file with the same name already exists in the destination folder.
+      - If a file with the same name exists, it enters a loop to generate a new unique filename:
+        - It generates a random number between 1000 and 9999.
+        - It creates a new filename by appending the random number in parentheses to the original filename.
+        - It checks if a file with the new filename already exists in the destination folder.
+        - If the file with the new filename doesn't exist, it breaks out of the loop.
+        - If the file with the new filename exists, it repeats the process by generating a new random number until a unique filename is found.
+      - Once a unique filename is determined, it renames the file with the new filename and moves it to the destination folder.
+    - If no file with the same name exists in the destination folder, it simply renames the file and moves it to the destination folder.
+    - It prints a message indicating the file movement and renaming (if applicable).
+    - It's important to note that the random number appended to the filename is temporary and will be replaced with the proper index later in the `rename_files()` function.
+
+    ***Example:***
+    
+      Suppose we have a file named "document.pdf" in the downloads directory, and a file with the same name already exists in the destination folder "PDFs". The organize_files() function will:
+
+      - Check if "document.pdf" already exists in the "PDFs" folder.
+      - Since it exists, print a message: "File with name 'document.pdf' already exists in PDFs, trying a different name..."
+      - Enter a loop to generate a unique filename:
+        - Generate a random number, let's say 1234.
+        - Create a new filename "document (1234).pdf".
+        - Check if "document (1234).pdf" exists in the "PDFs" folder.
+        - If it doesn't exist, print a message: "Found a unique name: 'document (1234).pdf'" and break out of the loop.
+        - If it exists, print a message: "File with name 'document (1234).pdf' already exists. Trying a different name..." and repeat the process with a new random number.
+      - Once a unique filename is found, rename the file to "document (1234).pdf" and move it to the "PDFs" folder.
+      - Print a message: "Moved and renamed document.pdf to D:\Downloads\PDFs\document (1234).pdf".
+      
+      Later, when the rename_files() function is called, it will process the files in the "PDFs" folder and rename "document (1234).pdf" to "document (1).pdf" (assuming "document.pdf" still exists in the folder). This ensures that the file has the proper index - instead of the temporary random number.
 
 5. **`load_hash_cache(cache_file)`**: 
     - This function loads the hash cache from a JSON file specified by `cache_file`.
